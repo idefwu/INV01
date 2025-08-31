@@ -1,0 +1,33 @@
+# IDE 和編輯器設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日誌檔案
+*.log
+logs/
+
+# 臨時檔案
+tmp/
+temp/
+*.tmp
+
+# Node.js (如果後續使用)
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# 其他不需要版本控制的檔案
+.obsidian/
+.claude/
+
+# 測試檔案（可選）
+# test_*.html
+# *_test.html

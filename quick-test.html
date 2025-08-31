@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存管理系統 - 快速測試</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>庫存管理系統 - 快速測試</h1>
+    
+    <div class="container">
+        <h2>系統狀態檢查</h2>
+        <button onclick="runQuickTest()">執行快速測試</button>
+        <div id="results"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="basic/js/models.js"></script>
+    <script src="basic/js/utils.js"></script>
+    <script src="basic/js/dashboard.js"></script>
+    <script src="basic/js/products.js"></script>
+    <script src="basic/js/customers.js"></script>
+    <script src="basic/js/suppliers.js"></script>
+    <script src="basic/js/purchase.js"></script>
+    <script src="basic/js/sales.js"></script>
+    <script src="basic/js/inventory.js"></script>
+    <script src="basic/js/reports.js"></script>
+    
+    <script>
+        function runQuickTest() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>執行測試中...</h3>';
+            
+            const testResults = [];
+            
+            try {
+                // 1. 測試系統初始化
+                const system = new InventorySystem();
+                testResults.push({ name: '系統初始化', pass: !!system, details: '成功創建 InventorySystem 實例' });
+                
+                // 2. 測試工具函數
+                const dateFormatted = Utils.formatDate('2024-12-25');
+                testResults.push({ name: '日期格式化', pass: !!dateFormatted, details: dateFormatted });
+                
+                const currency = Utils.formatCurrency(12345);
+                testResults.push({ name: '貨幣格式化', pass: !!currency, details: currency });
+                
+                // 3. 測試商品管理
+                const product = system.addProduct('TEST001', '測試商品', '測試規格', '個', 100, 150, 10, 20);
+                testResults.push({ name: '新增商品', pass: !!product, details: `商品ID: ${product ? product.id : '失敗'}` });
+                
+                // 4. 測試客戶管理
+                const customer = system.addCustomer('測試客戶', '0912345678', 'test@example.com', '台北市');
+                testResults.push({ name: '新增客戶', pass: !!customer, details: `客戶ID: ${customer ? customer.id : '失敗'}` });
+                
+                // 5. 測試供應商管理
+                const supplier = system.addSupplier('測試供應商', '王先生', '02-12345678', 'supplier@test.com', '新北市', '12345678');
+                testResults.push({ name: '新增供應商', pass: !!supplier, details: `供應商ID: ${supplier ? supplier.id : '失敗'}` });
+                
+                // 6. 測試模組初始化
+                let modulesOK = true;
+                let moduleDetails = '';
+                
+                try {
+                    const dashboardModule = new DashboardModule(system);
+                    const productsModule = new ProductsModule(system);
+                    const customersModule = new CustomersModule(system);
+                    const suppliersModule = new SuppliersModule(system);
+                    const purchaseModule = new PurchaseModule(system);
+                    const salesModule = new SalesModule(system);
+                    const inventoryModule = new InventoryModule(system);
+                    const reportsModule = new ReportsModule(system);
+                    
+                    moduleDetails = '所有模組初始化成功';
+                } catch (error) {
+                    modulesOK = false;
+                    moduleDetails = '模組初始化失敗: ' + error.message;
+                }
+                
+                testResults.push({ name: '模組初始化', pass: modulesOK, details: moduleDetails });
+                
+                // 7. 測試進貨流程
+                if (product && supplier) {
+                    const purchaseOrder = system.createPurchaseOrder(
+                        supplier.id,
+                        new Date().toISOString().split('T')[0],
+                        [{ productId: product.id, quantity: 50, unitPrice: 90 }]
+                    );
+                    testResults.push({ name: '建立進貨單', pass: !!purchaseOrder, details: `進貨單ID: ${purchaseOrder ? purchaseOrder.id : '失敗'}` });
+                    
+                    if (purchaseOrder) {
+                        system.receivePurchaseOrder(purchaseOrder.id);
+                        const updatedProduct = system.getProductById(product.id);
+                        const stockIncreased = updatedProduct.currentStock === 70; // 20 + 50
+                        testResults.push({ name: '收貨更新庫存', pass: stockIncreased, details: `庫存: ${updatedProduct.currentStock}` });
+                    }
+                }
+                
+                // 8. 測試銷貨流程
+                if (product && customer) {
+                    const salesOrder = system.createSalesOrder(
+                        customer.id,
+                        new Date().toISOString().split('T')[0],
+                        [{ productId: product.id, quantity: 15, unitPrice: 150 }]
+                    );
+                    testResults.push({ name: '建立銷貨單', pass: !!salesOrder, details: `銷貨單ID: ${salesOrder ? salesOrder.id : '失敗'}` });
+                    
+                    if (salesOrder) {
+                        const updatedProduct = system.getProductById(product.id);
+                        const stockDecreased = updatedProduct.currentStock === 55; // 70 - 15
+                        testResults.push({ name: '銷貨扣減庫存', pass: stockDecreased, details: `庫存: ${updatedProduct.currentStock}` });
+                    }
+                }
+                
+                // 9. 測試庫存調整
+                if (product) {
+                    system.adjustInventory(product.id, 'increase', 10, '測試調整');
+                    const updatedProduct = system.getProductById(product.id);
+                    const adjustmentOK = updatedProduct.currentStock === 65; // 55 + 10
+                    testResults.push({ name: '庫存調整', pass: adjustmentOK, details: `調整後庫存: ${updatedProduct.currentStock}` });
+                }
+                
+                // 10. 測試統計數據
+                const totalProducts = system.products.length;
+                const totalCustomers = system.customers.length;
+                const totalSuppliers = system.suppliers.length;
+                const totalPurchaseOrders = system.purchaseOrders.length;
+                const totalSalesOrders = system.salesOrders.length;
+                
+                testResults.push({ name: '統計數據', pass: true, details: `商品: ${totalProducts}, 客戶: ${totalCustomers}, 供應商: ${totalSuppliers}, 進貨單: ${totalPurchaseOrders}, 銷貨單: ${totalSalesOrders}` });
+                
+            } catch (error) {
+                testResults.push({ name: '系統測試異常', pass: false, details: error.message });
+                console.error('測試異常:', error);
+            }
+            
+            // 顯示結果
+            let html = '<h3>測試結果</h3>';
+            let passCount = 0;
+            let totalCount = testResults.length;
+            
+            testResults.forEach(result => {
+                const className = result.pass ? 'pass' : 'fail';
+                const status = result.pass ? '✓ 通過' : '✗ 失敗';
+                if (result.pass) passCount++;
+                
+                html += `<div class="result ${className}">
+                    <strong>${result.name}:</strong> ${status}<br>
+                    <small>${result.details}</small>
+                </div>`;
+            });
+            
+            html += `<div class="result ${passCount === totalCount ? 'pass' : 'fail'}">
+                <strong>總計:</strong> ${passCount}/${totalCount} 項測試通過 (${((passCount/totalCount)*100).toFixed(1)}%)
+            </div>`;
+            
+            results.innerHTML = html;
+            
+            // 在控制台輸出詳細信息
+            console.log('快速測試完成:', {
+                passed: passCount,
+                total: totalCount,
+                success: passCount === totalCount,
+                results: testResults
+            });
+            
+            // 如果所有測試通過，顯示成功訊息
+            if (passCount === totalCount) {
+                alert('🎉 所有測試通過！庫存管理系統運作正常。');
+            } else {
+                alert('⚠️ 部分測試失敗，請檢查控制台輸出以獲取更多詳細信息。');
+            }
+        }
+        
+        // 頁面加載完成後自動執行測試
+        window.addEventListener('load', () => {
+            console.log('頁面加載完成，準備執行快速測試...');
+            setTimeout(runQuickTest, 500);
+        });
+    </script>
+</body>
+</html>

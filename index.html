@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存管理系統</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 256px;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sidebar-brand i {
+            font-size: 24px;
+            margin-right: 12px;
+            color: #3498db;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            margin: 5px 15px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-link i {
+            min-width: 20px;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+        }
+
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 256px;
+            flex: 1;
+            transition: margin-left 0.3s ease;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        .sidebar.collapsed + .main-content {
+            margin-left: 60px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .user-info i {
+            margin-left: 10px;
+            font-size: 16px;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--card-color-1), var(--card-color-2));
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .dashboard-card.blue {
+            --card-color-1: #3498db;
+            --card-color-2: #2980b9;
+        }
+
+        .dashboard-card.green {
+            --card-color-1: #2ecc71;
+            --card-color-2: #27ae60;
+        }
+
+        .dashboard-card.orange {
+            --card-color-1: #f39c12;
+            --card-color-2: #e67e22;
+        }
+
+        .dashboard-card.cyan {
+            --card-color-1: #1abc9c;
+            --card-color-2: #16a085;
+        }
+
+        .card-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .card-label {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .card-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        /* Activity Sections */
+        .activity-sections {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 0 30px 30px;
+        }
+
+        .activity-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .activity-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .activity-header i {
+            margin-right: 10px;
+            color: #7f8c8d;
+        }
+
+        .activity-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .recent-activity {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+
+        .recent-activity .activity-header {
+            border-bottom-color: rgba(255,255,255,0.2);
+        }
+
+        .recent-activity .activity-title {
+            color: white;
+        }
+
+        .pending-tasks {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .pending-tasks .activity-header {
+            border-bottom-color: rgba(255,255,255,0.2);
+        }
+
+        .pending-tasks .activity-title {
+            color: white;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            padding: 30px;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input {
+            padding: 12px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background-color: #fafbfc;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-select {
+            padding: 12px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #fafbfc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #3498db;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* Button Styles */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+            transform: translateY(-1px);
+        }
+
+        .btn-info {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .table td {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .report-table {
+            background: white;
+        }
+
+        .report-header {
+            margin-bottom: 20px;
+        }
+
+        .report-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .report-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .low-stock-row {
+            background-color: #fff3cd !important;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Text Colors */
+        .text-warning {
+            color: #f39c12 !important;
+            font-weight: 600;
+        }
+
+        .text-success {
+            color: #27ae60 !important;
+            font-weight: 600;
+        }
+
+        .text-danger {
+            color: #e74c3c !important;
+            font-weight: 600;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 3000;
+            min-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar:not(.collapsed) {
+                width: 256px;
+                z-index: 2000;
+            }
+
+            .main-content {
+                margin-left: 60px;
+            }
+
+            .sidebar:not(.collapsed) + .main-content {
+                margin-left: 256px;
+            }
+
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .activity-sections {
+                grid-template-columns: 1fr;
+                padding: 0 20px 20px;
+            }
+
+            .content-section {
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .page-title {
+                font-size: 20px;
+            }
+
+            .dashboard-card {
+                padding: 20px;
+            }
+
+            .card-value {
+                font-size: 28px;
+            }
+
+            .card-icon {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-boxes"></i>
+                    <span>庫存管理系統</span>
+                </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-nav">
+                <div class="nav-item">
+                    <a href="#" class="nav-link active" onclick="showSection('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>儀表板</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('products')">
+                        <i class="fas fa-box"></i>
+                        <span>商品管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('customers')">
+                        <i class="fas fa-users"></i>
+                        <span>客戶管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('suppliers')">
+                        <i class="fas fa-truck"></i>
+                        <span>供應商管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('purchase')">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>進貨管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('sales')">
+                        <i class="fas fa-cash-register"></i>
+                        <span>銷貨管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('inventory')">
+                        <i class="fas fa-warehouse"></i>
+                        <span>庫存管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('rop')">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>再訂購點管理</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('reports')">
+                        <i class="fas fa-chart-line"></i>
+                        <span>報表管理</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title" id="page-title">儀表板</h1>
+                <div class="user-info">
+                    歡迎，倉庫管理員
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="content-section active">
+                <div class="dashboard-cards">
+                    <div class="dashboard-card blue" onclick="showSection('products')">
+                        <div class="card-value" id="product-count">0</div>
+                        <div class="card-label">商品總數</div>
+                        <div class="card-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card green" onclick="showSection('inventory')">
+                        <div class="card-value" id="stock-value">$0</div>
+                        <div class="card-label">庫存總價值</div>
+                        <div class="card-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card orange" onclick="showSection('inventory')">
+                        <div class="card-value" id="low-stock-count">0</div>
+                        <div class="card-label">低庫存商品</div>
+                        <div class="card-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card cyan" onclick="showSection('purchase')">
+                        <div class="card-value" id="pending-orders">0</div>
+                        <div class="card-label">待收貨訂單</div>
+                        <div class="card-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="activity-sections">
+                    <div class="activity-card recent-activity">
+                        <div class="activity-header">
+                            <i class="fas fa-clock"></i>
+                            <h3 class="activity-title">近期活動</h3>
+                        </div>
+                        <div id="recent-activities">
+                            <p>載入中...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-card pending-tasks">
+                        <div class="activity-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3 class="activity-title">待處理事項</h3>
+                        </div>
+                        <div id="pending-tasks">
+                            <p>載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div id="products" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">新增商品</h2>
+                    <form id="product-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">商品編號 *</label>
+                                <input type="text" class="form-input" id="product-code" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">商品名稱 *</label>
+                                <input type="text" class="form-input" id="product-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">規格</label>
+                                <input type="text" class="form-input" id="product-spec">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">單位</label>
+                                <input type="text" class="form-input" id="product-unit" placeholder="例：個、箱、公斤">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">成本價 *</label>
+                                <input type="number" class="form-input" id="product-cost" min="0" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">售價 *</label>
+                                <input type="number" class="form-input" id="product-sale-price" min="0" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">安全庫存</label>
+                                <input type="number" class="form-input" id="product-safety-stock" min="0" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">初始庫存</label>
+                                <input type="number" class="form-input" id="product-initial-stock" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                新增商品
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="productsModule.clearForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 class="section-title" style="margin: 0; border: none; padding: 0;">商品列表</h3>
+                        <input type="text" class="form-input" id="product-search" placeholder="搜尋商品..." style="width: 300px;">
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>商品編號</th>
+                                    <th>商品名稱</th>
+                                    <th>規格</th>
+                                    <th>單位</th>
+                                    <th>成本價</th>
+                                    <th>售價</th>
+                                    <th>庫存</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table">
+                                <tr>
+                                    <td colspan="9" class="text-center">暫無商品資料</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Section -->
+            <div id="customers" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">新增客戶</h2>
+                    <form id="customer-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">客戶姓名 *</label>
+                                <input type="text" class="form-input" id="customer-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">聯絡電話</label>
+                                <input type="tel" class="form-input" id="customer-phone">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">電子郵件</label>
+                                <input type="email" class="form-input" id="customer-email">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">地址</label>
+                                <input type="text" class="form-input" id="customer-address">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                新增客戶
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="customersModule.clearForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">客戶列表</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>客戶姓名</th>
+                                    <th>聯絡電話</th>
+                                    <th>電子郵件</th>
+                                    <th>地址</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table">
+                                <tr>
+                                    <td colspan="5" class="text-center">暫無客戶資料</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suppliers Section -->
+            <div id="suppliers" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">新增供應商</h2>
+                    <form id="supplier-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">供應商名稱 *</label>
+                                <input type="text" class="form-input" id="supplier-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">聯絡人</label>
+                                <input type="text" class="form-input" id="supplier-contact">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">聯絡電話</label>
+                                <input type="tel" class="form-input" id="supplier-phone">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">電子郵件</label>
+                                <input type="email" class="form-input" id="supplier-email">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">地址</label>
+                                <input type="text" class="form-input" id="supplier-address">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">統一編號</label>
+                                <input type="text" class="form-input" id="supplier-tax-id">
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                新增供應商
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="suppliersModule.clearForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">供應商列表</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>供應商名稱</th>
+                                    <th>聯絡人</th>
+                                    <th>電話</th>
+                                    <th>電子郵件</th>
+                                    <th>統一編號</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliers-table">
+                                <tr>
+                                    <td colspan="6" class="text-center">暫無供應商資料</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Section -->
+            <div id="purchase" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">新增進貨單</h2>
+                    <form id="purchase-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">供應商 *</label>
+                                <select class="form-input" id="purchase-supplier" required>
+                                    <option value="">請選擇供應商</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">進貨日期 *</label>
+                                <input type="date" class="form-input" id="purchase-date" required>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 20px 0 15px 0;">進貨項目</h4>
+                        <div id="purchase-items"></div>
+                        <button type="button" class="btn btn-secondary" onclick="purchaseModule.addPurchaseItem()">
+                            <i class="fas fa-plus"></i>
+                            增加項目
+                        </button>
+                        
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-shopping-cart"></i>
+                                建立進貨單
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="purchaseModule.clearForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">進貨單列表</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>單號</th>
+                                    <th>供應商</th>
+                                    <th>日期</th>
+                                    <th>總金額</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchase-orders-table">
+                                <tr>
+                                    <td colspan="6" class="text-center">暫無進貨單</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Section -->
+            <div id="sales" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">新增銷貨單</h2>
+                    <form id="sales-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">客戶</label>
+                                <select class="form-input" id="sales-customer">
+                                    <option value="">散客</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">銷貨日期 *</label>
+                                <input type="date" class="form-input" id="sales-date" required>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 20px 0 15px 0;">銷貨項目</h4>
+                        <div id="sales-items"></div>
+                        <button type="button" class="btn btn-secondary" onclick="salesModule.addSalesItem()">
+                            <i class="fas fa-plus"></i>
+                            增加項目
+                        </button>
+                        
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-cash-register"></i>
+                                建立銷貨單
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="salesModule.clearForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">銷貨單列表</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>單號</th>
+                                    <th>客戶</th>
+                                    <th>日期</th>
+                                    <th>總金額</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-orders-table">
+                                <tr>
+                                    <td colspan="6" class="text-center">暫無銷貨單</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Section -->
+            <div id="inventory" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">庫存調整</h2>
+                    <form id="adjustment-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">選擇商品 *</label>
+                                <select class="form-input" id="adjustment-product" required>
+                                    <option value="">請選擇商品</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">調整類型 *</label>
+                                <select class="form-input" id="adjustment-type" required>
+                                    <option value="">請選擇類型</option>
+                                    <option value="increase">增加</option>
+                                    <option value="decrease">減少</option>
+                                    <option value="set">設定</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">數量 *</label>
+                                <input type="number" class="form-input" id="adjustment-quantity" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">調整原因 *</label>
+                                <input type="text" class="form-input" id="adjustment-reason" required>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-edit"></i>
+                                調整庫存
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="inventoryModule.clearAdjustmentForm()">
+                                <i class="fas fa-undo"></i>
+                                清除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 class="section-title" style="margin: 0; border: none; padding: 0;">低庫存商品</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>商品編號</th>
+                                    <th>商品名稱</th>
+                                    <th>目前庫存</th>
+                                    <th>安全庫存</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="low-stock-table">
+                                <tr>
+                                    <td colspan="5" class="text-center">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 class="section-title" style="margin: 0; border: none; padding: 0;">庫存概覽</h3>
+                        <input type="text" class="form-input" id="inventory-search" placeholder="搜尋商品..." style="width: 300px;">
+                    </div>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>商品編號</th>
+                                    <th>商品名稱</th>
+                                    <th>目前庫存</th>
+                                    <th>單位</th>
+                                    <th>庫存價值</th>
+                                    <th>安全庫存</th>
+                                    <th>狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table">
+                                <tr>
+                                    <td colspan="7" class="text-center">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROP Section -->
+            <div id="rop" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        再訂購點管理
+                    </h2>
+                    
+                    <!-- 統計資訊 -->
+                    <div class="stats-grid" style="margin-bottom: 30px;">
+                        <div class="stat-card warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div class="stat-value" id="total-reorder-items">0</div>
+                            <div class="stat-label">需補貨商品</div>
+                        </div>
+                        <div class="stat-card info">
+                            <i class="fas fa-dollar-sign"></i>
+                            <div class="stat-value" id="total-reorder-value">$0</div>
+                            <div class="stat-label">預估採購成本</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-clock"></i>
+                            <div class="stat-value" id="last-update-time">--</div>
+                            <div class="stat-label">最後更新</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按鈕 -->
+                    <div class="action-bar">
+                        <button type="button" class="btn btn-primary" id="refresh-reorder-list">
+                            <i class="fas fa-sync-alt"></i> 刷新列表
+                        </button>
+                        <button type="button" class="btn btn-success" id="export-reorder-report">
+                            <i class="fas fa-download"></i> 匯出報表
+                        </button>
+                        <div class="search-box">
+                            <input type="text" id="rop-search" placeholder="搜尋商品..." class="search-input">
+                            <i class="fas fa-search search-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 缺貨清單 -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-list-ul"></i>
+                        缺貨清單 (需要補貨)
+                    </h3>
+                    
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>商品編號</th>
+                                    <th>商品名稱</th>
+                                    <th>目前庫存</th>
+                                    <th>再訂購點</th>
+                                    <th>建議進貨量</th>
+                                    <th>預估成本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reorder-list-table">
+                                <tr>
+                                    <td colspan="7" class="text-center">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- ROP設定 -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-cog"></i>
+                        再訂購點設定
+                    </h3>
+                    
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>商品編號</th>
+                                    <th>商品名稱</th>
+                                    <th>目前庫存</th>
+                                    <th>再訂購點</th>
+                                    <th>再訂購量</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rop-settings-table">
+                                <tr>
+                                    <td colspan="7" class="text-center">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports" class="content-section">
+                <div class="section-card">
+                    <h2 class="section-title">報表產生</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">報表類型</label>
+                            <div class="btn-group">
+                                <button class="btn btn-primary" id="generate-inventory-report">
+                                    <i class="fas fa-boxes"></i>
+                                    庫存報表
+                                </button>
+                                <button class="btn btn-info" id="generate-transaction-report">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    進銷存明細
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">開始日期</label>
+                            <input type="date" class="form-input" id="report-start-date">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">結束日期</label>
+                            <input type="date" class="form-input" id="report-end-date">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">報表內容</h3>
+                    <div id="report-content">
+                        <p class="text-center">請選擇報表類型並產生報表</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 3000;"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">標題</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                內容
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="basic/js/models.js"></script>
+    <script src="basic/js/utils.js"></script>
+    <script src="basic/js/dashboard.js"></script>
+    <script src="basic/js/products.js"></script>
+    <script src="basic/js/customers_enhanced.js"></script>
+    <script src="basic/js/suppliers.js"></script>
+    <script src="basic/js/purchase.js"></script>
+    <script src="basic/js/sales.js"></script>
+    <script src="basic/js/inventory.js"></script>
+    <script src="basic/js/rop.js"></script>
+    <script src="basic/js/reports.js"></script>
+    
+    <script>
+        // Global variables
+        let sidebarCollapsed = false;
+        let inventorySystem, dashboardModule, productsModule, customersModule, 
+            suppliersModule, purchaseModule, salesModule, inventoryModule, reportsModule;
+
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebarCollapsed = !sidebarCollapsed;
+            
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+            }
+        }
+
+        // Show section
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName).classList.add('active');
+            
+            // Add active class to corresponding nav link
+            event.target.classList.add('active');
+            
+            // Update page title
+            const titles = {
+                'dashboard': '儀表板',
+                'products': '商品管理',
+                'customers': '客戶管理',
+                'suppliers': '供應商管理',
+                'purchase': '進貨管理',
+                'sales': '銷貨管理',
+                'inventory': '庫存管理',
+                'rop': '再訂購點管理',
+                'reports': '報表管理'
+            };
+            
+            document.getElementById('page-title').textContent = titles[sectionName] || '儀表板';
+            
+            // Load corresponding data based on section
+            switch(sectionName) {
+                case 'dashboard':
+                    dashboardModule.loadDashboard();
+                    break;
+                case 'products':
+                    productsModule.loadProductData();
+                    break;
+                case 'customers':
+                    customersModule.loadCustomers();
+                    break;
+                case 'suppliers':
+                    supplierModule.loadSuppliers();
+                    break;
+                case 'purchase':
+                    purchaseModule.loadPurchaseOrders();
+                    break;
+                case 'sales':
+                    salesModule.loadSalesOrders();
+                    break;
+                case 'inventory':
+                    inventoryModule.loadInventoryData();
+                    break;
+                case 'rop':
+                    ropModule.loadROPData();
+                    break;
+                case 'reports':
+                    reportsModule.setDefaultDates();
+                    break;
+            }
+        }
+
+        // Alert system
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 
+                        'fa-exclamation-triangle';
+            
+            alert.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Modal functions
+        function openModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = content;
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Responsive handling
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                sidebarCollapsed = true;
+            }
+        }
+
+        // 全域錯誤處理器
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('🚨 JavaScript錯誤:', {
+                message: message,
+                source: source,
+                line: lineno,
+                column: colno,
+                error: error
+            });
+            showAlert('JavaScript錯誤: ' + message, 'error');
+            return true;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('🚨 未處理的Promise拒絕:', event.reason);
+            showAlert('系統錯誤: ' + event.reason, 'error');
+        });
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 開始初始化庫存管理系統...');
+            
+            try {
+                // Initialize inventory system
+                inventorySystem = new InventorySystem();
+                console.log('✅ InventorySystem 初始化成功');
+                
+                // Initialize modules
+                dashboardModule = new DashboardModule(inventorySystem);
+                console.log('✅ DashboardModule 初始化成功');
+                
+                productsModule = new ProductsModule(inventorySystem);
+                console.log('✅ ProductsModule 初始化成功');
+                
+                customersModule = new CustomersModule(inventorySystem);
+                console.log('✅ CustomersModule 初始化成功');
+                
+                supplierModule = new SupplierModule(inventorySystem);
+                console.log('✅ SupplierModule 初始化成功');
+                
+                purchaseModule = new PurchaseModule(inventorySystem);
+                console.log('✅ PurchaseModule 初始化成功');
+                
+                salesModule = new SalesModule(inventorySystem);
+                console.log('✅ SalesModule 初始化成功');
+                
+                inventoryModule = new InventoryModule(inventorySystem);
+                console.log('✅ InventoryModule 初始化成功');
+                
+                ropModule = new ROPModule(inventorySystem);
+                console.log('✅ ROPModule 初始化成功');
+                
+                reportsModule = new ReportsModule(inventorySystem);
+                console.log('✅ ReportsModule 初始化成功');
+                
+                // Initialize all modules with error handling
+                try {
+                    dashboardModule.initialize();
+                    console.log('✅ Dashboard 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Dashboard 模組初始化失敗:', e);
+                }
+                
+                try {
+                    productsModule.initialize();
+                    console.log('✅ Products 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Products 模組初始化失敗:', e);
+                }
+                
+                try {
+                    customersModule.initialize();
+                    console.log('✅ Customers 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Customers 模組初始化失敗:', e);
+                }
+                
+                try {
+                    supplierModule.initialize();
+                    console.log('✅ Supplier 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Supplier 模組初始化失敗:', e);
+                }
+                
+                try {
+                    purchaseModule.initialize();
+                    console.log('✅ Purchase 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Purchase 模組初始化失敗:', e);
+                }
+                
+                try {
+                    salesModule.initialize();
+                    console.log('✅ Sales 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Sales 模組初始化失敗:', e);
+                }
+                
+                try {
+                    inventoryModule.initialize();
+                    console.log('✅ Inventory 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Inventory 模組初始化失敗:', e);
+                }
+                
+                try {
+                    ropModule.initialize();
+                    console.log('✅ ROP 模組已初始化');
+                } catch (e) {
+                    console.error('❌ ROP 模組初始化失敗:', e);
+                }
+                
+                try {
+                    reportsModule.initialize();
+                    console.log('✅ Reports 模組已初始化');
+                } catch (e) {
+                    console.error('❌ Reports 模組初始化失敗:', e);
+                }
+                
+                // 確保模組可在全域訪問 (修復按鈕事件問題)
+                window.productsModule = productsModule;
+                window.customersModule = customersModule;
+                window.supplierModule = supplierModule;
+                window.purchaseModule = purchaseModule;
+                window.salesModule = salesModule;
+                window.inventoryModule = inventoryModule;
+                window.ropModule = ropModule;
+                window.reportsModule = reportsModule;
+                window.dashboardModule = dashboardModule;
+                window.inventorySystem = inventorySystem;
+                
+                console.log('🎉 所有模組初始化完成');
+                showAlert('庫存管理系統初始化成功！', 'success');
+                
+                // 測試基本功能
+                setTimeout(() => {
+                    console.log('🔧 執行系統功能測試...');
+                    
+                    // 測試系統數據
+                    const stats = inventorySystem.getStatistics();
+                    console.log('📊 系統統計:', stats);
+                    
+                    // 測試ROP功能
+                    const reorderProducts = inventorySystem.getReorderProducts();
+                    console.log('⚠️ 需要補貨的商品:', reorderProducts.length);
+                    
+                    // 測試模組是否可訪問
+                    console.log('🧩 模組訪問測試:');
+                    console.log('  - productsModule:', typeof window.productsModule);
+                    console.log('  - ropModule:', typeof window.ropModule);
+                    console.log('  - inventoryModule:', typeof window.inventoryModule);
+                    
+                    if (reorderProducts.length > 0) {
+                        showAlert(`發現 ${reorderProducts.length} 個商品需要補貨！`, 'warning');
+                    }
+                    
+                    console.log('✅ 系統功能測試完成');
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ 系統初始化失敗:', error);
+                showAlert('系統初始化失敗: ' + error.message, 'error');
+            }
+            
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('purchase-date').value = today;
+            document.getElementById('sales-date').value = today;
+            
+            // Load initial dashboard
+            dashboardModule.loadDashboard();
+            
+            // Handle responsive
+            window.addEventListener('resize', handleResize);
+            handleResize();
+        });
+    </script>
+</body>
+</html>

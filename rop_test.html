@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROP系統測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .pass { color: green; }
+        .fail { color: red; }
+        pre { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>ROP系統功能測試</h1>
+    
+    <div class="test-section">
+        <h2>1. Product模型ROP功能測試</h2>
+        <div id="product-test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. InventorySystem ROP方法測試</h2>
+        <div id="inventory-test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. 缺貨清單生成測試</h2>
+        <div id="reorder-test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. ROP報表生成測試</h2>
+        <div id="report-test-result"></div>
+    </div>
+    
+    <script src="basic/js/models.js"></script>
+    <script>
+        // 測試結果
+        let testResults = [];
+        
+        function addTest(name, passed, message = '') {
+            testResults.push({ name, passed, message });
+            console.log(`${passed ? '✅' : '❌'} ${name}: ${message}`);
+        }
+        
+        function displayResults(containerId, results) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = results.map(test => 
+                `<div class="${test.passed ? 'pass' : 'fail'}">
+                    ${test.passed ? '✅' : '❌'} ${test.name}
+                    ${test.message ? `<br>說明: ${test.message}` : ''}
+                </div>`
+            ).join('');
+        }
+        
+        // 測試1: Product模型ROP功能
+        function testProductROP() {
+            console.log('=== 測試Product模型ROP功能 ===');
+            const results = [];
+            
+            try {
+                // 創建測試商品
+                const product = new Product('P001', 'A001', '測試商品', '測試規格', '個', 10, 5, 20, 40, 100);
+                
+                results.push({
+                    name: 'Product建構子支援ROP參數',
+                    passed: product.reorderPoint === 40 && product.reorderQuantity === 100,
+                    message: `再訂購點: ${product.reorderPoint}, 再訂購量: ${product.reorderQuantity}`
+                });
+                
+                // 測試needsReorder方法
+                product.currentStock = 50;
+                results.push({
+                    name: 'needsReorder方法 - 不需補貨',
+                    passed: !product.needsReorder(),
+                    message: `庫存${product.currentStock} > ROP${product.reorderPoint}`
+                });
+                
+                product.currentStock = 30;
+                results.push({
+                    name: 'needsReorder方法 - 需要補貨',
+                    passed: product.needsReorder(),
+                    message: `庫存${product.currentStock} ≤ ROP${product.reorderPoint}`
+                });
+                
+                // 測試getReorderInfo方法
+                const reorderInfo = product.getReorderInfo();
+                results.push({
+                    name: 'getReorderInfo方法',
+                    passed: reorderInfo.needsReorder === true && reorderInfo.suggestedQuantity === 100,
+                    message: `返回完整補貨資訊，建議量: ${reorderInfo.suggestedQuantity}`
+                });
+                
+            } catch (error) {
+                results.push({
+                    name: 'Product ROP測試',
+                    passed: false,
+                    message: `錯誤: ${error.message}`
+                });
+            }
+            
+            displayResults('product-test-result', results);
+        }
+        
+        // 測試2: InventorySystem ROP方法
+        function testInventorySystemROP() {
+            console.log('=== 測試InventorySystem ROP方法 ===');
+            const results = [];
+            
+            try {
+                const system = new InventorySystem();
+                
+                // 測試getReorderProducts方法
+                const reorderProducts = system.getReorderProducts();
+                results.push({
+                    name: 'getReorderProducts方法',
+                    passed: Array.isArray(reorderProducts),
+                    message: `找到 ${reorderProducts.length} 個需要補貨的商品`
+                });
+                
+                // 測試getReorderList方法
+                const reorderList = system.getReorderList();
+                results.push({
+                    name: 'getReorderList方法',
+                    passed: Array.isArray(reorderList),
+                    message: `生成 ${reorderList.length} 筆補貨清單`
+                });
+                
+                // 驗證初始數據中的ROP設定
+                const testProduct = system.products.find(p => p.code === 'A002');
+                if (testProduct) {
+                    results.push({
+                        name: '初始數據ROP設定',
+                        passed: testProduct.reorderPoint === 30 && testProduct.reorderQuantity === 80,
+                        message: `A002商品: ROP=${testProduct.reorderPoint}, 補貨量=${testProduct.reorderQuantity}`
+                    });
+                    
+                    results.push({
+                        name: '模擬缺貨情況',
+                        passed: testProduct.currentStock <= testProduct.reorderPoint,
+                        message: `A002庫存${testProduct.currentStock} ≤ ROP${testProduct.reorderPoint}`
+                    });
+                }
+                
+            } catch (error) {
+                results.push({
+                    name: 'InventorySystem ROP測試',
+                    passed: false,
+                    message: `錯誤: ${error.message}`
+                });
+            }
+            
+            displayResults('inventory-test-result', results);
+        }
+        
+        // 測試3: 缺貨清單功能
+        function testReorderList() {
+            console.log('=== 測試缺貨清單功能 ===');
+            const results = [];
+            
+            try {
+                const system = new InventorySystem();
+                const reorderList = system.getReorderList();
+                
+                results.push({
+                    name: '缺貨清單不為空',
+                    passed: reorderList.length > 0,
+                    message: `找到 ${reorderList.length} 個需要補貨的商品`
+                });
+                
+                if (reorderList.length > 0) {
+                    const firstItem = reorderList[0];
+                    const requiredFields = ['productId', 'code', 'name', 'currentStock', 'reorderPoint', 'suggestedQuantity', 'needsReorder'];
+                    const hasAllFields = requiredFields.every(field => firstItem.hasOwnProperty(field));
+                    
+                    results.push({
+                        name: '缺貨清單包含必要欄位',
+                        passed: hasAllFields,
+                        message: `檢查欄位: ${requiredFields.join(', ')}`
+                    });
+                    
+                    results.push({
+                        name: '缺貨邏輯正確',
+                        passed: firstItem.needsReorder === true,
+                        message: `${firstItem.name}: 庫存${firstItem.currentStock} ≤ ROP${firstItem.reorderPoint}`
+                    });
+                    
+                    // 顯示具體的缺貨商品
+                    console.log('缺貨商品詳情:', reorderList);
+                }
+                
+            } catch (error) {
+                results.push({
+                    name: '缺貨清單測試',
+                    passed: false,
+                    message: `錯誤: ${error.message}`
+                });
+            }
+            
+            displayResults('reorder-test-result', results);
+        }
+        
+        // 測試4: ROP報表生成
+        function testROPReport() {
+            console.log('=== 測試ROP報表生成 ===');
+            const results = [];
+            
+            try {
+                const system = new InventorySystem();
+                const report = system.generateReorderReport();
+                
+                results.push({
+                    name: '報表物件生成',
+                    passed: report && typeof report === 'object',
+                    message: '成功生成報表物件'
+                });
+                
+                const requiredFields = ['reportDate', 'totalItems', 'reorderList', 'totalSuggestedValue'];
+                const hasAllFields = requiredFields.every(field => report.hasOwnProperty(field));
+                
+                results.push({
+                    name: '報表包含必要欄位',
+                    passed: hasAllFields,
+                    message: `欄位: ${requiredFields.join(', ')}`
+                });
+                
+                results.push({
+                    name: '報表數據合理',
+                    passed: report.totalItems >= 0 && report.totalSuggestedValue >= 0,
+                    message: `總商品數: ${report.totalItems}, 總成本: $${report.totalSuggestedValue}`
+                });
+                
+                console.log('完整報表:', report);
+                
+            } catch (error) {
+                results.push({
+                    name: 'ROP報表測試',
+                    passed: false,
+                    message: `錯誤: ${error.message}`
+                });
+            }
+            
+            displayResults('report-test-result', results);
+        }
+        
+        // 執行所有測試
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                testProductROP();
+                testInventorySystemROP();
+                testReorderList();
+                testROPReport();
+                
+                console.log('=== 測試完成 ===');
+                console.log('如果所有測試都通過，ROP系統已成功實現！');
+            }, 100);
+        });
+    </script>
+</body>
+</html>

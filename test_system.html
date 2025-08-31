@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存管理系統測試</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .alert {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .table th, .table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .status-success { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1><i class="fas fa-warehouse"></i> 庫存管理系統功能測試</h1>
+        
+        <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 3000;"></div>
+        
+        <div class="test-section">
+            <h2><i class="fas fa-play"></i> 系統初始化測試</h2>
+            <button class="btn btn-primary" onclick="testSystemInit()">測試系統初始化</button>
+            <button class="btn btn-success" onclick="testProductOperations()">測試商品操作</button>
+            <button class="btn btn-warning" onclick="testROPSystem()">測試ROP系統</button>
+            <div id="init-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2><i class="fas fa-box"></i> 商品管理測試</h2>
+            <button class="btn btn-primary" onclick="addTestProduct()">新增測試商品</button>
+            <button class="btn btn-warning" onclick="editTestProduct()">編輯商品</button>
+            <button class="btn btn-danger" onclick="deleteTestProduct()">刪除商品</button>
+            <div id="product-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2><i class="fas fa-exclamation-triangle"></i> ROP功能測試</h2>
+            <button class="btn btn-primary" onclick="showReorderList()">顯示缺貨清單</button>
+            <button class="btn btn-success" onclick="updateROPSettings()">更新ROP設定</button>
+            <button class="btn btn-warning" onclick="generateROPReport()">生成ROP報表</button>
+            <div id="rop-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2><i class="fas fa-database"></i> 系統數據檢視</h2>
+            <div id="system-data"></div>
+        </div>
+    </div>
+
+    <!-- 載入所有JavaScript模組 -->
+    <script src="basic/js/models.js"></script>
+    <script src="basic/js/utils.js"></script>
+    <script src="basic/js/dashboard.js"></script>
+    <script src="basic/js/products.js"></script>
+    <script src="basic/js/customers.js"></script>
+    <script src="basic/js/suppliers.js"></script>
+    <script src="basic/js/purchase.js"></script>
+    <script src="basic/js/sales.js"></script>
+    <script src="basic/js/inventory.js"></script>
+    <script src="basic/js/rop.js"></script>
+    <script src="basic/js/reports.js"></script>
+
+    <script>
+        // 全局變量
+        let inventorySystem;
+        let productsModule;
+        let ropModule;
+        
+        // Alert 系統
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 
+                        'fa-exclamation-triangle';
+            
+            alert.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // 系統初始化測試
+        function testSystemInit() {
+            const resultsDiv = document.getElementById('init-results');
+            let results = [];
+            
+            try {
+                // 初始化庫存系統
+                inventorySystem = new InventorySystem();
+                results.push(`✅ InventorySystem 初始化成功`);
+                
+                // 初始化模組
+                productsModule = new ProductsModule(inventorySystem);
+                results.push(`✅ ProductsModule 初始化成功`);
+                
+                ropModule = new ROPModule(inventorySystem);
+                results.push(`✅ ROPModule 初始化成功`);
+                
+                // 測試基本功能
+                const productCount = inventorySystem.products.length;
+                results.push(`✅ 載入了 ${productCount} 個商品`);
+                
+                const reorderCount = inventorySystem.getReorderProducts().length;
+                results.push(`✅ 發現 ${reorderCount} 個需要補貨的商品`);
+                
+                showAlert('系統初始化測試完成', 'success');
+                
+            } catch (error) {
+                results.push(`❌ 初始化失敗: ${error.message}`);
+                showAlert('系統初始化失敗: ' + error.message, 'error');
+            }
+            
+            resultsDiv.innerHTML = `<div class="alert alert-info">
+                <h4>初始化測試結果:</h4>
+                ${results.map(result => `<div>${result}</div>`).join('')}
+            </div>`;
+            
+            // 顯示系統數據
+            displaySystemData();
+        }
+        
+        // 商品操作測試
+        function testProductOperations() {
+            if (!inventorySystem) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('product-results');
+            let results = [];
+            
+            try {
+                // 測試新增商品
+                const newProduct = inventorySystem.addProduct(
+                    'TEST001', '測試商品', '測試規格', '個', 10, 5, 20, 15, 50
+                );
+                results.push(`✅ 新增商品成功: ${newProduct.name}`);
+                
+                // 測試庫存調整
+                const adjustment = inventorySystem.adjustInventory(
+                    newProduct.id, 'set', 10, '測試調整'
+                );
+                results.push(`✅ 庫存調整成功: ${adjustment.product.name}`);
+                
+                // 測試ROP檢查
+                const needsReorder = newProduct.needsReorder();
+                results.push(`✅ ROP檢查: ${needsReorder ? '需要補貨' : '庫存充足'}`);
+                
+                showAlert('商品操作測試完成', 'success');
+                
+            } catch (error) {
+                results.push(`❌ 操作失敗: ${error.message}`);
+                showAlert('商品操作測試失敗: ' + error.message, 'error');
+            }
+            
+            resultsDiv.innerHTML = `<div class="alert alert-info">
+                <h4>商品操作測試結果:</h4>
+                ${results.map(result => `<div>${result}</div>`).join('')}
+            </div>`;
+        }
+        
+        // 添加測試商品
+        function addTestProduct() {
+            if (!inventorySystem) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            try {
+                const timestamp = Date.now();
+                const product = inventorySystem.addProduct(
+                    `T${timestamp}`, 
+                    `測試商品${timestamp}`, 
+                    '自動生成的測試商品', 
+                    '個', 
+                    20, 15, 10, 8, 30
+                );
+                
+                // 設置較低庫存以觸發ROP
+                product.currentStock = 5;
+                
+                showAlert(`成功新增測試商品: ${product.name}`, 'success');
+                displaySystemData();
+            } catch (error) {
+                showAlert('新增商品失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // ROP系統測試
+        function testROPSystem() {
+            if (!inventorySystem || !ropModule) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('rop-results');
+            let results = [];
+            
+            try {
+                // 測試缺貨清單
+                const reorderList = inventorySystem.getReorderList();
+                results.push(`✅ 生成缺貨清單: ${reorderList.length} 項`);
+                
+                // 測試報表生成
+                const report = inventorySystem.generateReorderReport();
+                results.push(`✅ 生成ROP報表成功`);
+                results.push(`📊 總需補貨項目: ${report.totalItems}`);
+                results.push(`💰 預估總成本: $${report.totalSuggestedValue.toLocaleString()}`);
+                
+                // 顯示具體的缺貨項目
+                if (reorderList.length > 0) {
+                    results.push(`<h5>缺貨商品詳情:</h5>`);
+                    reorderList.forEach(item => {
+                        results.push(`• ${item.name} (${item.code}): 庫存${item.currentStock} ≤ ROP${item.reorderPoint}, 建議補貨${item.suggestedQuantity}`);
+                    });
+                }
+                
+                showAlert('ROP系統測試完成', 'success');
+                
+            } catch (error) {
+                results.push(`❌ ROP測試失敗: ${error.message}`);
+                showAlert('ROP測試失敗: ' + error.message, 'error');
+            }
+            
+            resultsDiv.innerHTML = `<div class="alert alert-info">
+                <h4>ROP系統測試結果:</h4>
+                ${results.map(result => `<div>${result}</div>`).join('')}
+            </div>`;
+        }
+        
+        // 顯示缺貨清單
+        function showReorderList() {
+            if (!inventorySystem) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            const reorderList = inventorySystem.getReorderList();
+            const resultsDiv = document.getElementById('rop-results');
+            
+            if (reorderList.length === 0) {
+                resultsDiv.innerHTML = '<div class="alert alert-success">目前沒有需要補貨的商品</div>';
+                return;
+            }
+            
+            const tableHTML = `
+                <div class="alert alert-warning">找到 ${reorderList.length} 個需要補貨的商品:</div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>商品編號</th>
+                            <th>商品名稱</th>
+                            <th>目前庫存</th>
+                            <th>再訂購點</th>
+                            <th>建議進貨量</th>
+                            <th>預估成本</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${reorderList.map(item => {
+                            const product = inventorySystem.products.find(p => p.id === item.productId);
+                            const estimatedCost = item.suggestedQuantity * (product ? product.costPrice : 0);
+                            
+                            return `
+                                <tr>
+                                    <td>${item.code}</td>
+                                    <td>${item.name}</td>
+                                    <td class="status-error">${item.currentStock}</td>
+                                    <td>${item.reorderPoint}</td>
+                                    <td class="status-warning">${item.suggestedQuantity}</td>
+                                    <td>$${estimatedCost.toLocaleString()}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            resultsDiv.innerHTML = tableHTML;
+            showAlert(`顯示 ${reorderList.length} 項缺貨商品`, 'info');
+        }
+        
+        // 更新ROP設定
+        function updateROPSettings() {
+            if (!inventorySystem) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            try {
+                // 為第一個商品更新ROP設定
+                const firstProduct = inventorySystem.products[0];
+                if (firstProduct) {
+                    firstProduct.reorderPoint = 60;
+                    firstProduct.reorderQuantity = 150;
+                    firstProduct.updatedAt = new Date();
+                    
+                    showAlert(`已更新 ${firstProduct.name} 的ROP設定`, 'success');
+                    displaySystemData();
+                }
+            } catch (error) {
+                showAlert('更新ROP設定失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 生成ROP報表
+        function generateROPReport() {
+            if (!inventorySystem) {
+                showAlert('請先初始化系統', 'warning');
+                return;
+            }
+            
+            try {
+                const report = inventorySystem.generateReorderReport();
+                
+                const reportHTML = `
+                    <div class="alert alert-info">
+                        <h4>📊 ROP報表</h4>
+                        <p><strong>報表日期:</strong> ${new Date(report.reportDate).toLocaleString('zh-TW')}</p>
+                        <p><strong>需補貨商品總數:</strong> ${report.totalItems}</p>
+                        <p><strong>預估採購總成本:</strong> $${report.totalSuggestedValue.toLocaleString()}</p>
+                    </div>
+                    <pre>${JSON.stringify(report, null, 2)}</pre>
+                `;
+                
+                document.getElementById('rop-results').innerHTML = reportHTML;
+                showAlert('ROP報表生成完成', 'success');
+                
+            } catch (error) {
+                showAlert('生成報表失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 編輯測試商品
+        function editTestProduct() {
+            if (!inventorySystem || inventorySystem.products.length === 0) {
+                showAlert('請先新增一些商品', 'warning');
+                return;
+            }
+            
+            try {
+                const product = inventorySystem.products[0];
+                const updates = {
+                    name: product.name + ' (已編輯)',
+                    salePrice: product.salePrice + 5,
+                    reorderPoint: product.reorderPoint + 10
+                };
+                
+                inventorySystem.updateProduct(product.id, updates);
+                showAlert(`已編輯商品: ${product.name}`, 'success');
+                displaySystemData();
+                
+            } catch (error) {
+                showAlert('編輯商品失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 刪除測試商品
+        function deleteTestProduct() {
+            if (!inventorySystem || inventorySystem.products.length === 0) {
+                showAlert('沒有可刪除的商品', 'warning');
+                return;
+            }
+            
+            try {
+                // 查找測試商品
+                const testProduct = inventorySystem.products.find(p => p.code.startsWith('T'));
+                if (testProduct) {
+                    const deletedProduct = inventorySystem.deleteProduct(testProduct.id);
+                    showAlert(`已刪除測試商品: ${deletedProduct.name}`, 'success');
+                    displaySystemData();
+                } else {
+                    showAlert('沒有找到測試商品', 'info');
+                }
+                
+            } catch (error) {
+                showAlert('刪除商品失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 顯示系統數據
+        function displaySystemData() {
+            if (!inventorySystem) return;
+            
+            const systemDataDiv = document.getElementById('system-data');
+            const products = inventorySystem.products;
+            const statistics = inventorySystem.getStatistics();
+            
+            const dataHTML = `
+                <div class="alert alert-info">
+                    <h4>📈 系統統計</h4>
+                    <p><strong>商品總數:</strong> ${statistics.productCount}</p>
+                    <p><strong>庫存總價值:</strong> $${statistics.totalInventoryValue.toLocaleString()}</p>
+                    <p><strong>低庫存商品:</strong> ${statistics.lowStockCount}</p>
+                    <p><strong>需要補貨商品:</strong> ${inventorySystem.getReorderProducts().length}</p>
+                </div>
+                
+                <h4>📦 商品列表</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>名稱</th>
+                            <th>庫存</th>
+                            <th>ROP</th>
+                            <th>補貨量</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${products.map(product => `
+                            <tr>
+                                <td>${product.code}</td>
+                                <td>${product.name}</td>
+                                <td class="${product.needsReorder() ? 'status-error' : 'status-success'}">${product.currentStock}</td>
+                                <td>${product.reorderPoint}</td>
+                                <td>${product.reorderQuantity}</td>
+                                <td>
+                                    ${product.needsReorder() ? 
+                                        '<span class="status-error">需要補貨</span>' : 
+                                        '<span class="status-success">庫存充足</span>'
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            systemDataDiv.innerHTML = dataHTML;
+        }
+        
+        // 頁面載入時自動執行初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                console.log('開始初始化測試系統...');
+                testSystemInit();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

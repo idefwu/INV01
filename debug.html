@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>庫存系統診斷</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>庫存管理系統診斷</h1>
+    
+    <div id="diagnostics"></div>
+    
+    <h2>JavaScript錯誤監控</h2>
+    <div id="errors"></div>
+    
+    <h2>模組載入狀態</h2>
+    <div id="modules"></div>
+    
+    <h2>ROP測試</h2>
+    <div id="rop-test"></div>
+    
+    <button onclick="runDiagnostics()">重新執行診斷</button>
+    <button onclick="testROP()">測試ROP功能</button>
+    
+    <!-- 載入所有必要的JavaScript檔案 -->
+    <script src="basic/js/models.js"></script>
+    <script src="basic/js/utils.js"></script>
+    <script src="basic/js/dashboard.js"></script>
+    <script src="basic/js/products.js"></script>
+    <script src="basic/js/customers.js"></script>
+    <script src="basic/js/suppliers.js"></script>
+    <script src="basic/js/purchase.js"></script>
+    <script src="basic/js/sales.js"></script>
+    <script src="basic/js/inventory.js"></script>
+    <script src="basic/js/rop.js"></script>
+    <script src="basic/js/reports.js"></script>
+    
+    <script>
+        let errorLog = [];
+        let diagnosticResults = [];
+        
+        // 錯誤監控
+        window.onerror = function(message, source, lineno, colno, error) {
+            errorLog.push({
+                message: message,
+                source: source,
+                line: lineno,
+                column: colno,
+                error: error
+            });
+            updateErrorDisplay();
+            return true;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            errorLog.push({
+                message: 'Promise rejection: ' + event.reason,
+                source: 'Promise',
+                line: 0,
+                column: 0,
+                error: event.reason
+            });
+            updateErrorDisplay();
+        });
+        
+        function updateErrorDisplay() {
+            const errorsDiv = document.getElementById('errors');
+            if (errorLog.length === 0) {
+                errorsDiv.innerHTML = '<div class="status success">沒有發現JavaScript錯誤</div>';
+            } else {
+                errorsDiv.innerHTML = errorLog.map(err => 
+                    `<div class="status error">
+                        <strong>錯誤:</strong> ${err.message}<br>
+                        <strong>來源:</strong> ${err.source}:${err.line}:${err.column}
+                    </div>`
+                ).join('');
+            }
+        }
+        
+        function addDiagnostic(name, status, message) {
+            diagnosticResults.push({ name, status, message });
+            updateDiagnosticsDisplay();
+        }
+        
+        function updateDiagnosticsDisplay() {
+            const diagnosticsDiv = document.getElementById('diagnostics');
+            diagnosticsDiv.innerHTML = diagnosticResults.map(result => 
+                `<div class="status ${result.status}">
+                    <strong>${result.name}:</strong> ${result.message}
+                </div>`
+            ).join('');
+        }
+        
+        function updateModulesDisplay() {
+            const modulesDiv = document.getElementById('modules');
+            const modules = [
+                'InventorySystem',
+                'Product', 
+                'DashboardModule',
+                'ProductsModule',
+                'CustomersModule',
+                'SuppliersModule',
+                'PurchaseModule',
+                'SalesModule',
+                'InventoryModule',
+                'ROPModule',
+                'ReportsModule'
+            ];
+            
+            const moduleStatus = modules.map(moduleName => {
+                const exists = typeof window[moduleName] !== 'undefined';
+                return {
+                    name: moduleName,
+                    status: exists ? 'success' : 'error',
+                    message: exists ? '已載入' : '未找到'
+                };
+            });
+            
+            modulesDiv.innerHTML = moduleStatus.map(module => 
+                `<div class="status ${module.status}">
+                    <strong>${module.name}:</strong> ${module.message}
+                </div>`
+            ).join('');
+        }
+        
+        function runDiagnostics() {
+            diagnosticResults = [];
+            errorLog = [];
+            
+            try {
+                // 測試InventorySystem
+                const system = new InventorySystem();
+                addDiagnostic('InventorySystem建立', 'success', '成功建立庫存系統實例');
+                
+                // 測試產品數據
+                addDiagnostic('產品數據', 'success', `載入了 ${system.products.length} 個產品`);
+                
+                // 測試ROP功能
+                const reorderProducts = system.getReorderProducts();
+                addDiagnostic('ROP功能', 'success', `找到 ${reorderProducts.length} 個需要補貨的產品`);
+                
+                // 測試ROPModule
+                if (typeof ROPModule !== 'undefined') {
+                    const ropModule = new ROPModule(system);
+                    addDiagnostic('ROPModule', 'success', 'ROP模組可以正常實例化');
+                } else {
+                    addDiagnostic('ROPModule', 'error', 'ROPModule類別未定義');
+                }
+                
+            } catch (error) {
+                addDiagnostic('系統初始化', 'error', error.message);
+            }
+            
+            updateModulesDisplay();
+            updateErrorDisplay();
+        }
+        
+        function testROP() {
+            const ropTestDiv = document.getElementById('rop-test');
+            
+            try {
+                const system = new InventorySystem();
+                
+                // 測試數據
+                console.log('系統產品:', system.products);
+                
+                const reorderList = system.getReorderList();
+                console.log('缺貨清單:', reorderList);
+                
+                const report = system.generateReorderReport();
+                console.log('ROP報表:', report);
+                
+                ropTestDiv.innerHTML = `
+                    <div class="status success">
+                        <strong>ROP測試結果:</strong><br>
+                        總產品數: ${system.products.length}<br>
+                        需要補貨: ${reorderList.length} 項<br>
+                        預估成本: $${report.totalSuggestedValue.toLocaleString()}
+                    </div>
+                    <pre>${JSON.stringify(reorderList, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                ropTestDiv.innerHTML = `<div class="status error">ROP測試失敗: ${error.message}</div>`;
+            }
+        }
+        
+        // 頁面載入時自動執行診斷
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runDiagnostics, 100);
+        });
+    </script>
+</body>
+</html>

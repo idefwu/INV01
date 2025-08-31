@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>index.html 修復測試</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 index.html 修復測試</h1>
+        
+        <h2>測試說明</h2>
+        <p>這個頁面將測試修復後的 index.html 是否能正常運作。</p>
+        
+        <h3>測試步驟：</h3>
+        <ol>
+            <li>點擊「在新視窗開啟 index.html」</li>
+            <li>查看瀏覽器控制台是否有錯誤訊息</li>
+            <li>確認系統初始化成功提示</li>
+            <li>測試商品管理頁面的按鈕是否可點擊</li>
+            <li>測試ROP管理功能</li>
+        </ol>
+        
+        <div>
+            <button class="test-button" onclick="openIndexInNewWindow()">
+                🚀 在新視窗開啟 index.html
+            </button>
+            
+            <button class="test-button" onclick="openWorkingSystem()">
+                ✅ 開啟 working_system.html (參考版本)
+            </button>
+            
+            <button class="test-button" onclick="runQuickTest()">
+                🧪 快速功能測試
+            </button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <h2>修復內容摘要</h2>
+        <div class="result info">
+            <h4>✅ 已修復的問題：</h4>
+            <ul>
+                <li><strong>JavaScript初始化增強</strong>：加入詳細的錯誤處理和日誌</li>
+                <li><strong>全域模組訪問</strong>：將所有模組綁定到 window 物件，確保按鈕事件可正常訪問</li>
+                <li><strong>模組初始化容錯</strong>：每個模組都有獨立的錯誤處理</li>
+                <li><strong>全域錯誤監控</strong>：添加 window.onerror 和 unhandledrejection 處理器</li>
+                <li><strong>自動功能測試</strong>：系統初始化後自動執行基本功能測試</li>
+                <li><strong>ROP功能整合</strong>：確保 showSection 函數支援 ROP 頁面載入</li>
+            </ul>
+        </div>
+        
+        <h2>測試檢查項目</h2>
+        <div id="checklist">
+            <h4>請在使用 index.html 時確認以下項目：</h4>
+            <ul>
+                <li>✅ 頁面載入後顯示「庫存管理系統初始化成功！」綠色通知</li>
+                <li>✅ 瀏覽器控制台顯示所有模組初始化成功的日誌</li>
+                <li>✅ 點擊「商品管理」標籤能正常切換頁面</li>
+                <li>✅ 商品表格中的編輯、查看、調整、刪除按鈕都能正常點擊</li>
+                <li>✅ 點擊「再訂購點管理」標籤能顯示ROP頁面</li>
+                <li>✅ ROP頁面能正確顯示需要補貨的商品（A002和B001）</li>
+                <li>✅ 各種功能按鈕點擊後都有相應的提示訊息</li>
+            </ul>
+        </div>
+        
+        <h2>如果仍有問題</h2>
+        <div class="result error">
+            <h4>除錯步驟：</h4>
+            <ol>
+                <li><strong>開啟開發者工具</strong>：按F12或右鍵「檢查」</li>
+                <li><strong>查看控制台</strong>：看是否有紅色錯誤訊息</li>
+                <li><strong>檢查網路</strong>：確認所有 .js 檔案都有正確載入</li>
+                <li><strong>對比參考版本</strong>：使用 working_system.html 對比功能</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        function openIndexInNewWindow() {
+            const newWindow = window.open('index.html', '_blank', 'width=1200,height=800');
+            
+            // 添加測試結果
+            addResult('success', '已在新視窗開啟 index.html，請檢查功能是否正常');
+            
+            // 給一些指引
+            setTimeout(() => {
+                addResult('info', '請檢查新視窗中的控制台訊息，確認所有模組都成功初始化');
+            }, 2000);
+        }
+        
+        function openWorkingSystem() {
+            window.open('working_system.html', '_blank', 'width=1200,height=800');
+            addResult('info', '已開啟參考版本 working_system.html 供對比');
+        }
+        
+        function runQuickTest() {
+            addResult('info', '執行快速測試...');
+            
+            // 測試基本的JavaScript功能
+            try {
+                // 創建一個iframe來測試index.html
+                const iframe = document.createElement('iframe');
+                iframe.src = 'index.html';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                iframe.onload = function() {
+                    try {
+                        const iframeWindow = iframe.contentWindow;
+                        
+                        // 等待一下讓系統初始化
+                        setTimeout(() => {
+                            try {
+                                const inventorySystem = iframeWindow.inventorySystem;
+                                if (inventorySystem) {
+                                    addResult('success', '✅ InventorySystem 實例可以訪問');
+                                    
+                                    const productCount = inventorySystem.products.length;
+                                    addResult('success', `✅ 載入了 ${productCount} 個商品`);
+                                    
+                                    const reorderCount = inventorySystem.getReorderProducts().length;
+                                    addResult('success', `✅ 找到 ${reorderCount} 個需要補貨的商品`);
+                                    
+                                    // 測試模組是否可訪問
+                                    const productsModule = iframeWindow.productsModule;
+                                    if (productsModule && typeof productsModule.editProduct === 'function') {
+                                        addResult('success', '✅ productsModule 模組和方法可以訪問');
+                                    } else {
+                                        addResult('error', '❌ productsModule 模組無法訪問');
+                                    }
+                                    
+                                    const ropModule = iframeWindow.ropModule;
+                                    if (ropModule && typeof ropModule.loadROPData === 'function') {
+                                        addResult('success', '✅ ropModule 模組和方法可以訪問');
+                                    } else {
+                                        addResult('error', '❌ ropModule 模組無法訪問');
+                                    }
+                                    
+                                } else {
+                                    addResult('error', '❌ InventorySystem 實例無法訪問');
+                                }
+                            } catch (e) {
+                                addResult('error', '❌ 訪問iframe內容時發生錯誤: ' + e.message);
+                            } finally {
+                                // 清理iframe
+                                document.body.removeChild(iframe);
+                            }
+                        }, 2000);
+                        
+                    } catch (e) {
+                        addResult('error', '❌ iframe測試失敗: ' + e.message);
+                        document.body.removeChild(iframe);
+                    }
+                };
+                
+                iframe.onerror = function() {
+                    addResult('error', '❌ 無法載入 index.html 進行測試');
+                    document.body.removeChild(iframe);
+                };
+                
+            } catch (error) {
+                addResult('error', '❌ 快速測試失敗: ' + error.message);
+            }
+        }
+        
+        function addResult(type, message) {
+            const resultsDiv = document.getElementById('test-results');
+            const result = document.createElement('div');
+            result.className = `result ${type}`;
+            result.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            resultsDiv.appendChild(result);
+            
+            // 滾動到最新結果
+            result.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 頁面載入時的說明
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('info', '測試環境已準備就緒，請開始測試修復後的 index.html');
+        });
+    </script>
+</body>
+</html>

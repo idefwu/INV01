@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統檢查</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .ok { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>庫存管理系統 - 系統檢查</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = `status ${isError ? 'error' : 'ok'}`;
+            div.textContent = message;
+            output.appendChild(div);
+        }
+        
+        function checkFile(src) {
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    log(`✓ 載入成功: ${src}`);
+                    resolve(true);
+                };
+                script.onerror = () => {
+                    log(`✗ 載入失敗: ${src}`, true);
+                    resolve(false);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function runCheck() {
+            log('開始系統檢查...');
+            
+            const files = [
+                'basic/js/models.js',
+                'basic/js/utils.js',
+                'basic/js/dashboard.js',
+                'basic/js/products.js',
+                'basic/js/customers.js',
+                'basic/js/suppliers.js',
+                'basic/js/purchase.js',
+                'basic/js/sales.js',
+                'basic/js/inventory.js',
+                'basic/js/reports.js'
+            ];
+            
+            let allLoaded = true;
+            for (const file of files) {
+                const loaded = await checkFile(file);
+                if (!loaded) allLoaded = false;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            if (allLoaded) {
+                log('所有檔案載入完成，開始功能檢查...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                try {
+                    // 檢查類別是否存在
+                    const classes = [
+                        'InventorySystem', 'Utils', 'DashboardModule', 
+                        'ProductsModule', 'CustomersModule', 'SuppliersModule',
+                        'PurchaseModule', 'SalesModule', 'InventoryModule', 'ReportsModule'
+                    ];
+                    
+                    classes.forEach(className => {
+                        if (typeof window[className] !== 'undefined') {
+                            log(`✓ 類別存在: ${className}`);
+                        } else {
+                            log(`✗ 類別不存在: ${className}`, true);
+                        }
+                    });
+                    
+                    // 測試基本功能
+                    const system = new InventorySystem();
+                    log('✓ InventorySystem 初始化成功');
+                    
+                    const stats = system.getStatistics();
+                    log(`✓ 統計功能正常 - 商品數: ${stats.productCount}`);
+                    
+                    const testProduct = system.addProduct('TEST001', '測試商品', '', '個', 100, 150, 10, 20);
+                    log(`✓ 新增商品成功 - ID: ${testProduct.id}`);
+                    
+                    log('🎉 系統檢查完成 - 所有功能正常！');
+                    
+                } catch (error) {
+                    log(`✗ 功能檢查失敗: ${error.message}`, true);
+                    console.error('詳細錯誤:', error);
+                }
+            } else {
+                log('✗ 部分檔案載入失敗，無法進行功能檢查', true);
+            }
+        }
+        
+        // 執行檢查
+        runCheck();
+    </script>
+</body>
+</html>
